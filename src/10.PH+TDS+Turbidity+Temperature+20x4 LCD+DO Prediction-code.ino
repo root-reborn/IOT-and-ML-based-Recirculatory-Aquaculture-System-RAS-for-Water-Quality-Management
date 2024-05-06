@@ -159,15 +159,25 @@ void loop() {   // Put main code here, to run repeatedly
   Serial.println("C");
   delay(500);
 
-   //Dissolved Oxygen Prediction code
+  // Dissolved Oxygen Prediction code
   // Dissolved Oxygen Prediction is done using Quadratic Regression Equation that has been obtained by training a Quadratic Regression Machine Learning model using the dataset "Water Quality Testing.csv" which is taken from "https://www.kaggle.com/datasets/shreyanshverma27/water-quality-testing/data"
-  float con = 0.7*tds;    //Since Conductivity (µS/cm)=TDS (ppm)×K where K is a conversion factor that depends on the water composition and temperature. A typical value for K is around 0.5 to 0.8.We take K=0.7
-
+  float con = 0.7*tds;    //Conductivity (µS/cm) = TDS (ppm)×K where K is a conversion factor that depends on the water composition and temperature. A typical value for K is around 0.5 to 0.8.We take K=0.7.We evluate conductivity value from tds value so that we can directly use it in our quadratic regression equatiuon to predict the dissolved oxygen value.
+  int exit = 10;
   dox = -727.354168+0.000000*(1)+240.932430*(ph)+3.369445*(tem)-0.967652*(tur)-1.019194*(con)-17.181410*square(ph)-0.416744*(ph)*(tem)-0.332142*(ph)*(tur)+0.052905*(ph)*(con)-0.060093*square(tem)-0.100080*(tem)*(tur)+0.007691*(tem)*(con)+0.150668*square(tur)+0.011365*(tur)*(con)+0.000663*square(con);
-  
   Serial.print("Dissolved Oxygen:");
-  Serial.print(dox, 1);  // prints the predicted value of dissolved oxygen with 1 decimal place on the serial monitor
+  Serial.print(dox, 1);          // prints the predicted value of dissolved oxygen with 1 decimal place on the serial monitor
   Serial.println("ppm");         // 1mg/L=1ppm of dissolved oxygen in dilute aqueous solutions.So the dissolved oxygen value obtained using the quadratic regression is in mg/L is same as in ppm units.
+    if (ph >= 6.83 && ph <= 7.48 && tem >= 20.3 && tem <= 23.6 && tur >= 3.1 && tur <= 5.1 && con >= 316 && con <= 370)  //We are specifying the min and max values of each of the 4 parameters i.e ph,tem,tur,con  in the dataset on which our ML model is trained
+    {     
+    exit = 1;                    //Exit status 1 indicates that the value of dissolved oxygen predicted by our Quadratic Regression ML model is more likely a Accurate Prediction because all the values of ph,tem,tur,con obtained by our sensors are within the range of max and min values on which the Quadratic Regression ML model is trained.
+    Serial.print("Exit Status:"); 
+    Serial.println(exit);
+    } else {
+    exit = 0;                    //Exit status 0 indicates that the value of dissolved oxygen predicted by our Quadratic Regression ML model is more likely a Inaccurate Prediction because any of the values of ph,tem,tur,con obtained by our sensors are not within the range of max and min values on which the Quadratic Regression ML model is trained.This may sometimes exclusively occur because of a faulty sensor/not properly calibirated sensor or just naturally because of using a different water sample.
+    Serial.print("Exit Status:"); 
+    Serial.println(exit);
+  }
+
 
   //20x4 LCD Display code
   lcd.setCursor(0, 0);                  // move cursor the first row
@@ -184,8 +194,19 @@ void loop() {   // Put main code here, to run repeatedly
   lcd.setCursor(0, 3);                  // move cursor to the fourth row
   lcd.print("Temperature:");            // print message the fourth row
   lcd.print(tem);
-  lcd.print("C");
-  delay(10000);                       //Displays the values of all parameters for 10sec on the LCD screen
+  lcd.print("C");                       //Displays the values of all parameters for 10sec on the LCD screen
+  delay(10000);                       
+
+  lcd.clear();                         //For displaying Predicted Dissolved oxygen values.
+  lcd.setCursor(0, 0);                 // move cursor the first row
+  lcd.print("Diss Oxy:");           
+  lcd.print(dox, 1);                   //We are printing the dissolved oxygen value with 1 decimal place with ppm units on LCD Display.
+  lcd.print("ppm");       
+  lcd.setCursor(0, 1);                 // move cursor the second row
+  lcd.print("Ext Stat:");           
+  lcd.print(exit);                   //We are printing the Exit Status Code of our dissolved oxygen prediction ML model.
+  delay(5000);
+
 
   lcd.clear();                      //For Displaying Debugging Information
   lcd.setCursor(0, 0);            
@@ -201,4 +222,3 @@ void loop() {   // Put main code here, to run repeatedly
   delay(3000);                          //Displays the Debugging Information for 3sec
   lcd.clear();    //Since a character written to the LCD display stays there until it is overwritten,so using lcd.clear() makes sure that all characters on LCD screen are completely erased by overwriting all positions with space character.This ensures that no character from previous display is carried on to the next display. 
 }
-
