@@ -1,0 +1,67 @@
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
+
+String URL = "http://api.thingspeak.com/update?api_key=XXXXXXXXXXXXXXXX&field1=";  //here write you own write API of thinkspeak
+void setup () {
+  Serial.begin(9600);
+  WiFi.disconnect();
+  delay(2000);
+  Serial.print("Start connection");
+  WiFi.begin("edp", "12345678");               //Write your own wifi credentials
+  while (!(WiFi.status() == WL_CONNECTED)) {
+    delay(200);
+    Serial.print("..");
+  }
+  Serial.println("Connected");
+}
+
+void loop() {
+
+  if (Serial.available() > 0) {
+    String data = Serial.readStringUntil('\n');
+    Serial.println(data);
+
+    int firstComma = data.indexOf(',');
+    int secondComma = data.indexOf(',', firstComma + 1);
+    int thirdComma = data.indexOf(',', secondComma + 1);
+    int fourthComma = data.indexOf(',', thirdComma + 1);
+
+    if (firstComma != -1 && secondComma != -1 && thirdComma != -1 && fourthComma != -1) {
+      String value1Str = data.substring(0, firstComma);
+      String value2Str = data.substring(firstComma + 1, secondComma);
+      String value3Str = data.substring(secondComma + 1, thirdComma);
+      String value4Str = data.substring(thirdComma + 1, fourthComma);
+      String value5Str = data.substring(fourthComma + 1);
+
+      float value1 = value1Str.toFloat();
+      float value2 = value2Str.toFloat();
+      float value3 = value3Str.toFloat();
+      float value4 = value4Str.toFloat();
+      float value5 = value5Str.toFloat();
+
+      Serial.print("Value 1: ");
+      Serial.println(value1);
+      Serial.print("Value 2: ");
+      Serial.println(value2);
+      Serial.print("Value 3: ");
+      Serial.println(value3);
+      Serial.print("Value 4: ");
+      Serial.println(value4);
+      Serial.print("Value 5: ");
+      Serial.println(value5);
+      sendData(value1, value2, value3, value4, value5);
+    }
+  }
+}
+
+void sendData(float ph, float tds, float turb, float temp, float dox) {
+  WiFiClient client;
+  HTTPClient http;
+  String newUrl = URL + String(ph) + "&field2=" + String(tds) + "&field3=" + String(turb) + "&field4=" + String(temp)+ "&field5=" + String(dox); //setting the new write api with our data
+  http.begin(client, newUrl);
+  int responsecode = http.GET();
+  String data = http.getString();
+  Serial.println(data);
+  http.end();
+}
